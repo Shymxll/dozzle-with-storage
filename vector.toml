@@ -3,7 +3,7 @@ data_dir = "/var/lib/vector"
 [sources.docker]
 type = "docker_logs"
 docker_host = "unix:///var/run/docker.sock"
-exclude_containers = ["log-archive", "log-archive-vector", "log-archive-postgres"]
+exclude_containers = ["log-archive", "log-archive-vector", "log-archive-postgres", "log-archive-dozzle"]
 
 [transforms.archive_payload]
 type = "remap"

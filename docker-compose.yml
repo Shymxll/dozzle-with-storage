@@ -36,9 +36,8 @@ services:
     volumes:
       - ${DOZZLE_CERT_FILE:?DOZZLE_CERT_FILE is required}:/certs/dozzle_cert.pem:ro
       - ${DOZZLE_KEY_FILE:?DOZZLE_KEY_FILE is required}:/certs/dozzle_key.pem:ro
-    ports:
-      - "7007:7007"
     expose:
+      - "7007"
       - "8080"
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/healthz"]
@@ -46,6 +45,24 @@ services:
       timeout: 3s
       retries: 12
       start_period: 10s
+
+  dozzle:
+    image: amir20/dozzle:v10.6.14
+    container_name: log-archive-dozzle
+    restart: unless-stopped
+    depends_on:
+      archive:
+        condition: service_healthy
+    environment:
+      DOZZLE_REMOTE_AGENT: "archive:7007|Arşiv|Arşiv"
+      DOZZLE_CERT: /certs/dozzle_cert.pem
+      DOZZLE_KEY: /certs/dozzle_key.pem
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DOZZLE_CERT_FILE:?DOZZLE_CERT_FILE is required}:/certs/dozzle_cert.pem:ro
+      - ${DOZZLE_KEY_FILE:?DOZZLE_KEY_FILE is required}:/certs/dozzle_key.pem:ro
+    expose:
+      - "8080"
 
   vector:
     image: timberio/vector:0.57.0-alpine
