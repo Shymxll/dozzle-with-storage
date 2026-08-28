@@ -1,0 +1,8 @@
+.git
+.tools
+certs
+graphify-out
+*.md
+Dockerfile*
+docker-compose*.yml
+vector.toml

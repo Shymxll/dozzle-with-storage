@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:18.4-alpine3.23
+    container_name: log-archive-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: logarchive
+      POSTGRES_USER: ${POSTGRES_USER:-logarchive}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  archive:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-archive
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-logarchive}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/logarchive?sslmode=disable
+      INGEST_TOKEN: ${INGEST_TOKEN:?INGEST_TOKEN is required}
+      DOZZLE_CERT: /certs/dozzle_cert.pem
+      DOZZLE_KEY: /certs/dozzle_key.pem
+      ARCHIVE_RETENTION_MONTHS: ${ARCHIVE_RETENTION_MONTHS:-6}
+      MAX_ROWS_PER_QUERY: ${MAX_ROWS_PER_QUERY:-50000}
+      INGEST_MAX_PENDING_ROWS: ${INGEST_MAX_PENDING_ROWS:-100000}
+    volumes:
+      - ${DOZZLE_CERT_FILE:?DOZZLE_CERT_FILE is required}:/certs/dozzle_cert.pem:ro
+      - ${DOZZLE_KEY_FILE:?DOZZLE_KEY_FILE is required}:/certs/dozzle_key.pem:ro
+    ports:
+      - "7007:7007"
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+  vector:
+    image: timberio/vector:0.57.0-alpine
+    container_name: log-archive-vector
+    restart: unless-stopped
+    depends_on:
+      archive:
+        condition: service_healthy
+    environment:
+      INGEST_TOKEN: ${INGEST_TOKEN:?INGEST_TOKEN is required}
+      VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./vector.toml:/etc/vector/vector.toml:ro
+      - vector-data:/var/lib/vector
+
+volumes:
+  postgres-data:
+  vector-data:

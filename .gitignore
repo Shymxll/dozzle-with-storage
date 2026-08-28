@@ -1,0 +1,7 @@
+.env
+.tools/
+coverage.out
+*.exe
+certs/*.pem
+certs/*.csr
+vector-data/

@@ -1,0 +1,39 @@
+data_dir = "/var/lib/vector"
+
+[sources.docker]
+type = "docker_logs"
+docker_host = "unix:///var/run/docker.sock"
+exclude_containers = ["log-archive", "log-archive-vector", "log-archive-postgres"]
+
+[transforms.archive_payload]
+type = "remap"
+inputs = ["docker"]
+source = '''
+service = if exists(.label."coolify.resourceName") && !is_null(.label."coolify.resourceName") {
+  to_string!(.label."coolify.resourceName")
+} else {
+  to_string!(.container_name)
+}
+event_ts = format_timestamp!(.timestamp, format: "%+")
+message = to_string!(.message)
+. = {"svc": service, "ts": event_ts, "msg": message}
+'''
+
+[sinks.archive]
+type = "http"
+inputs = ["archive_payload"]
+uri = "http://archive:8080/ingest"
+method = "post"
+framing.method = "newline_delimited"
+encoding.codec = "json"
+batch.max_events = 1000
+batch.timeout_secs = 2
+request.headers.Authorization = "Bearer ${INGEST_TOKEN}"
+request.headers."Content-Type" = "application/x-ndjson"
+healthcheck.enabled = true
+healthcheck.uri = "http://archive:8080/healthz"
+
+[sinks.archive.buffer]
+type = "disk"
+max_size = 536870912
+when_full = "block"
