@@ -44,28 +44,14 @@ Sorgu indeksi `logs (svc, ts DESC)` seklindedir. Tek sorguda dondurulen satir sa
 | `GRPC_ADDR` | hayir | `:7007` | Dozzle agent dinleme adresi |
 | `HTTP_ADDR` | hayir | `:8080` | Ingest/health dinleme adresi |
 
-Uygulamanin kendi `DATABASE_URL` degeri Compose tarafindan `postgres` servisi ve yukaridaki kimlik bilgileriyle otomatik uretilir. Sertifikalar Coolify volume dogrulayicisi degiskenli source yollarini kabul etmedigi icin sabit olarak `/data/dozzle-log-archive/certs/` dizininden mount edilir. Baslangic degerleri [.env.example](.env.example) dosyasindadir.
+Uygulamanin kendi `DATABASE_URL` degeri Compose tarafindan `postgres` servisi ve yukaridaki kimlik bilgileriyle otomatik uretilir. Baslangic degerleri [.env.example](.env.example) dosyasindadir.
 `INGEST_TOKEN` icin en az 32 baytlik, yalnizca URL-guvenli karakterler iceren rastgele bir deger kullanin. Vector 0.57 ortam degiskeni interpolasyonunu varsayilan olarak kapattigi icin compose, kontrollu `INGEST_TOKEN` degerini okuyabilmesi amaciyla ilgili opt-in bayragini etkinlestirir.
 
 `POSTGRES_USER` veya `POSTGRES_PASSWORD`, `postgres-data` ilk kez olusturulduktan sonra degistirilmemelidir. Degiskenleri sonradan degistirmek mevcut veritabanindaki kullaniciyi otomatik guncellemez.
 
 ## Sertifika ve Dozzle baglantisi
 
-Coolify sunucusunda Compose'un bekledigi sabit dizinde Ed25519 sertifikasini olusturun:
-
-```bash
-sudo mkdir -p /data/dozzle-log-archive/certs
-cd /data/dozzle-log-archive/certs
-sudo openssl genpkey -algorithm Ed25519 -out dozzle_key.pem
-sudo openssl req -new -key dozzle_key.pem -out request.csr \
-  -subj "/C=TR/ST=Istanbul/L=Istanbul/O=Dozzle Archive"
-sudo openssl x509 -req -in request.csr -signkey dozzle_key.pem \
-  -out dozzle_cert.pem -days 3650
-sudo chmod 644 dozzle_cert.pem
-sudo chmod 600 dozzle_key.pem
-```
-
-Deploy etmeden once iki yolun da dosya oldugunu dogrulayin: `sudo test -f /data/dozzle-log-archive/certs/dozzle_cert.pem && sudo test -f /data/dozzle-log-archive/certs/dozzle_key.pem && echo OK`. Dosyalar yokken deploy edilirse Docker bu yollarda dizin olusturabilir ve container baslatilamaz.
+Compose icindeki tek seferlik `cert-init` servisi Ed25519 sertifika/key ciftini otomatik olusturur ve `dozzle-certs` named volume'unda saklar. `archive` servisi ancak bu islem basariyla tamamlandiktan sonra baslar. Sunucuda elle sertifika dosyasi veya bind mount yolu hazirlamak gerekmez.
 
 Ayni sertifika/key cifti hem arsiv agent'ina hem Dozzle container'ina salt okunur mount edilir. Compose icindeki sabitlenmis `amir20/dozzle:v10.6.14` servisi su agent ayarlariyla hazir gelir:
 
@@ -104,7 +90,7 @@ POSTGRES_PASSWORD=<openssl rand -hex 32 ciktisi>
 INGEST_TOKEN=<farkli bir openssl rand -hex 32 ciktisi>
 ```
 
-`postgres-data` ve `vector-data` volume'larini Coolify yedekleme politikaniza ekleyin. Asil log arsivi `postgres-data` volume'undadir.
+`postgres-data`, `vector-data` ve `dozzle-certs` volume'larini Coolify yedekleme politikaniza ekleyin. Asil log arsivi `postgres-data` volume'undadir.
 
 Saglik kontrolu PostgreSQL'e gercek ping atar:
 

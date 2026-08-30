@@ -1,4 +1,23 @@
 services:
+  cert-init:
+    image: alpine:3.23
+    restart: "no"
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        apk add --no-cache openssl
+        if [ ! -s /certs/dozzle_cert.pem ] || [ ! -s /certs/dozzle_key.pem ]; then
+          rm -f /certs/dozzle_cert.pem /certs/dozzle_key.pem /certs/request.csr
+          openssl genpkey -algorithm Ed25519 -out /certs/dozzle_key.pem
+          openssl req -new -key /certs/dozzle_key.pem -out /certs/request.csr -subj "/C=TR/ST=Istanbul/L=Istanbul/O=Dozzle Archive"
+          openssl x509 -req -in /certs/request.csr -signkey /certs/dozzle_key.pem -out /certs/dozzle_cert.pem -days 3650
+          chmod 644 /certs/dozzle_cert.pem
+          chmod 600 /certs/dozzle_key.pem
+        fi
+    volumes:
+      - dozzle-certs:/certs
+
   postgres:
     image: postgres:18.4-alpine3.23
     container_name: log-archive-postgres
@@ -23,6 +42,8 @@ services:
     container_name: log-archive
     restart: unless-stopped
     depends_on:
+      cert-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     environment:
@@ -34,8 +55,7 @@ services:
       MAX_ROWS_PER_QUERY: ${MAX_ROWS_PER_QUERY:-50000}
       INGEST_MAX_PENDING_ROWS: ${INGEST_MAX_PENDING_ROWS:-100000}
     volumes:
-      - /data/dozzle-log-archive/certs/dozzle_cert.pem:/certs/dozzle_cert.pem:ro
-      - /data/dozzle-log-archive/certs/dozzle_key.pem:/certs/dozzle_key.pem:ro
+      - dozzle-certs:/certs:ro
     expose:
       - "7007"
       - "8080"
@@ -59,8 +79,7 @@ services:
       DOZZLE_KEY: /certs/dozzle_key.pem
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /data/dozzle-log-archive/certs/dozzle_cert.pem:/certs/dozzle_cert.pem:ro
-      - /data/dozzle-log-archive/certs/dozzle_key.pem:/certs/dozzle_key.pem:ro
+      - dozzle-certs:/certs:ro
     expose:
       - "8080"
 
@@ -80,5 +99,6 @@ services:
       - vector-data:/var/lib/vector
 
 volumes:
+  dozzle-certs:
   postgres-data:
   vector-data:
