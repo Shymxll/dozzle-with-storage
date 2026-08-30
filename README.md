@@ -11,7 +11,7 @@ Docker socket -> Vector 0.57 -> POST /ingest -> pgx COPY -> PostgreSQL
                                       |                |
                                       +-> canli fanout +-> gecmis sorgular
                                                            |
-Dozzle v10.6.14 <-------------- mTLS gRPC :7007 <----------+
+Dozzle v10.6.14 <------ Compose ici mTLS gRPC :7007 <------+
 ```
 
 - Ingest bicimi: `application/x-ndjson`; her satir `{"svc":"...","ts":"RFC3339","msg":"..."}`.
@@ -44,51 +44,57 @@ Sorgu indeksi `logs (svc, ts DESC)` seklindedir. Tek sorguda dondurulen satir sa
 | `GRPC_ADDR` | hayir | `:7007` | Dozzle agent dinleme adresi |
 | `HTTP_ADDR` | hayir | `:8080` | Ingest/health dinleme adresi |
 
-Uygulamanin kendi `DATABASE_URL` degeri Compose tarafindan `postgres` servisi ve yukaridaki kimlik bilgileriyle otomatik uretilir. Compose ayrica host sertifika yollari icin `DOZZLE_CERT_FILE` ve `DOZZLE_KEY_FILE` bekler. Baslangic degerleri [.env.example](.env.example) dosyasindadir.
+Uygulamanin kendi `DATABASE_URL` degeri Compose tarafindan `postgres` servisi ve yukaridaki kimlik bilgileriyle otomatik uretilir. Sertifikalar Coolify volume dogrulayicisi degiskenli source yollarini kabul etmedigi icin sabit olarak `/data/dozzle-log-archive/certs/` dizininden mount edilir. Baslangic degerleri [.env.example](.env.example) dosyasindadir.
 `INGEST_TOKEN` icin en az 32 baytlik, yalnizca URL-guvenli karakterler iceren rastgele bir deger kullanin. Vector 0.57 ortam degiskeni interpolasyonunu varsayilan olarak kapattigi icin compose, kontrollu `INGEST_TOKEN` degerini okuyabilmesi amaciyla ilgili opt-in bayragini etkinlestirir.
 
 `POSTGRES_USER` veya `POSTGRES_PASSWORD`, `postgres-data` ilk kez olusturulduktan sonra degistirilmemelidir. Degiskenleri sonradan degistirmek mevcut veritabanindaki kullaniciyi otomatik guncellemez.
 
 ## Sertifika ve Dozzle baglantisi
 
-Dozzle'in belgeledigi Ed25519 sertifika akisini kullanin:
+Coolify sunucusunda Compose'un bekledigi sabit dizinde Ed25519 sertifikasini olusturun:
 
 ```bash
-mkdir -p certs
-openssl genpkey -algorithm Ed25519 -out certs/dozzle_key.pem
-openssl req -new -key certs/dozzle_key.pem -out certs/request.csr \
+sudo mkdir -p /data/dozzle-log-archive/certs
+cd /data/dozzle-log-archive/certs
+sudo openssl genpkey -algorithm Ed25519 -out dozzle_key.pem
+sudo openssl req -new -key dozzle_key.pem -out request.csr \
   -subj "/C=TR/ST=Istanbul/L=Istanbul/O=Dozzle Archive"
-openssl x509 -req -in certs/request.csr -signkey certs/dozzle_key.pem \
-  -out certs/dozzle_cert.pem -days 3650
+sudo openssl x509 -req -in request.csr -signkey dozzle_key.pem \
+  -out dozzle_cert.pem -days 3650
+sudo chmod 644 dozzle_cert.pem
+sudo chmod 600 dozzle_key.pem
 ```
 
-Ayni sertifika/key cifti hem arsiv agent'ina hem Dozzle container'ina salt okunur mount edilmelidir. Ornek Dozzle ayarlari:
+Deploy etmeden once iki yolun da dosya oldugunu dogrulayin: `sudo test -f /data/dozzle-log-archive/certs/dozzle_cert.pem && sudo test -f /data/dozzle-log-archive/certs/dozzle_key.pem && echo OK`. Dosyalar yokken deploy edilirse Docker bu yollarda dizin olusturabilir ve container baslatilamaz.
+
+Ayni sertifika/key cifti hem arsiv agent'ina hem Dozzle container'ina salt okunur mount edilir. Compose icindeki sabitlenmis `amir20/dozzle:v10.6.14` servisi su agent ayarlariyla hazir gelir:
 
 ```yaml
-services:
-  dozzle:
-    image: amir20/dozzle:v10.6.14
-    environment:
-      DOZZLE_REMOTE_AGENT: "log-archive:7007|Arşiv|Arşiv"
-      DOZZLE_CERT: /certs/dozzle_cert.pem
-      DOZZLE_KEY: /certs/dozzle_key.pem
-    volumes:
-      - ./certs/dozzle_cert.pem:/certs/dozzle_cert.pem:ro
-      - ./certs/dozzle_key.pem:/certs/dozzle_key.pem:ro
+DOZZLE_REMOTE_AGENT: "archive:7007|Arşiv|Arşiv"
+DOZZLE_CERT: /certs/dozzle_cert.pem
+DOZZLE_KEY: /certs/dozzle_key.pem
 ```
 
-Agent istemci sertifikasini zorunlu tutar ve ayni sertifikayi guven koku olarak kullanir. `7007/tcp` Dozzle'dan erisilebilir olmalidir; `8080` yalnizca Compose ic aginda Vector'a acilir.
+Agent istemci sertifikasini zorunlu tutar ve ayni sertifikayi guven koku olarak kullanir. `7007/tcp` host'a publish edilmez; yalnizca ayni Compose agindaki Dozzle tarafindan erisilir. Archive'in `8080` portu da yalnizca Vector icindir. Disariya acilacak tek web servisi Dozzle'in `8080` portudur.
 
 ## Calistirma
 
 ```bash
 cp .env.example .env
-# .env icindeki parola, host, token ve sertifika yollarini duzenleyin
+# .env icindeki parola ve token degerlerini duzenleyin
 docker compose up -d --build
-docker compose logs -f postgres archive vector
+docker compose logs -f postgres archive vector dozzle
 ```
 
-Coolify'da ayni compose dosyasi tek bir Docker Compose kaynagi olarak deploy edilir. Ayrica managed PostgreSQL olusturmak veya bu uc servis arasinda predefined network acmak gerekmez; hepsi ayni Compose agindadir. Dozzle ayri bir Coolify kaynagiysa, Dozzle ile `log-archive` arasinda erisim icin her iki kaynagi ayni predefined network'e baglayin veya host portu `7007` uzerinden erisin.
+Coolify'da ayni compose dosyasi tek bir Docker Compose kaynagi olarak deploy edilir. Ayrica managed PostgreSQL veya ayri bir Dozzle kaynagi olusturmak ve predefined network acmak gerekmez; dort servis de ayni Compose agindadir.
+
+Coolify Compose servisleri yüklendikten sonra yalnizca `dozzle` servisine domain verin:
+
+```text
+https://dozzle.sumartiot.com:8080
+```
+
+Buradaki `:8080`, proxy'nin container icinde hangi porta yonlenecegini belirtir; kullanici Dozzle'a normal HTTPS/443 uzerinden erisir. `archive`, `postgres` ve `vector` servislerine domain vermeyin. Ayni domaini kullanan eski Dozzle kaynagi varsa once durdurun veya domaini ondan kaldirin. Dozzle'i public etmeden once mevcut kimlik dogrulama ayarlarinizi bu `dozzle` servisine tasiyin ya da Coolify/harici proxy katmaninda erisim korumasi etkinlestirin.
 
 Coolify environment alanlarinda en az su degerleri girin:
 
@@ -96,8 +102,6 @@ Coolify environment alanlarinda en az su degerleri girin:
 POSTGRES_USER=logarchive
 POSTGRES_PASSWORD=<openssl rand -hex 32 ciktisi>
 INGEST_TOKEN=<farkli bir openssl rand -hex 32 ciktisi>
-DOZZLE_CERT_FILE=/data/dozzle-log-archive/certs/dozzle_cert.pem
-DOZZLE_KEY_FILE=/data/dozzle-log-archive/certs/dozzle_key.pem
 ```
 
 `postgres-data` ve `vector-data` volume'larini Coolify yedekleme politikaniza ekleyin. Asil log arsivi `postgres-data` volume'undadir.

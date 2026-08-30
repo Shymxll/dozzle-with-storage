@@ -34,8 +34,8 @@ services:
       MAX_ROWS_PER_QUERY: ${MAX_ROWS_PER_QUERY:-50000}
       INGEST_MAX_PENDING_ROWS: ${INGEST_MAX_PENDING_ROWS:-100000}
     volumes:
-      - ${DOZZLE_CERT_FILE:?DOZZLE_CERT_FILE is required}:/certs/dozzle_cert.pem:ro
-      - ${DOZZLE_KEY_FILE:?DOZZLE_KEY_FILE is required}:/certs/dozzle_key.pem:ro
+      - /data/dozzle-log-archive/certs/dozzle_cert.pem:/certs/dozzle_cert.pem:ro
+      - /data/dozzle-log-archive/certs/dozzle_key.pem:/certs/dozzle_key.pem:ro
     expose:
       - "7007"
       - "8080"
@@ -59,8 +59,8 @@ services:
       DOZZLE_KEY: /certs/dozzle_key.pem
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ${DOZZLE_CERT_FILE:?DOZZLE_CERT_FILE is required}:/certs/dozzle_cert.pem:ro
-      - ${DOZZLE_KEY_FILE:?DOZZLE_KEY_FILE is required}:/certs/dozzle_key.pem:ro
+      - /data/dozzle-log-archive/certs/dozzle_cert.pem:/certs/dozzle_cert.pem:ro
+      - /data/dozzle-log-archive/certs/dozzle_key.pem:/certs/dozzle_key.pem:ro
     expose:
       - "8080"
 
