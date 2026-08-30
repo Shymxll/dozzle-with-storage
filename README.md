@@ -72,6 +72,8 @@ docker compose up -d --build
 docker compose logs -f postgres archive vector dozzle
 ```
 
+Coolify her deploy'da container adinin son ekini degistirir. Eski tam container adini kullanmak yerine servis loglarini Coolify arayuzunden veya Compose proje dizininde `docker compose logs --tail 100 archive` komutuyla okuyun.
+
 Coolify'da ayni compose dosyasi tek bir Docker Compose kaynagi olarak deploy edilir. Ayrica managed PostgreSQL veya ayri bir Dozzle kaynagi olusturmak ve predefined network acmak gerekmez; dort servis de ayni Compose agindadir.
 
 Coolify Compose servisleri yüklendikten sonra yalnizca `dozzle` servisine domain verin:

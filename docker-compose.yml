@@ -92,6 +92,7 @@ services:
         condition: service_healthy
     environment:
       INGEST_TOKEN: ${INGEST_TOKEN:?INGEST_TOKEN is required}
+      VECTOR_CONFIG: /etc/vector/vector.toml
       VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
