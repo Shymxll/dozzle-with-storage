@@ -94,12 +94,6 @@ INGEST_TOKEN=<farkli bir openssl rand -hex 32 ciktisi>
 
 `postgres-data`, `vector-data` ve `dozzle-certs` volume'larini Coolify yedekleme politikaniza ekleyin. Asil log arsivi `postgres-data` volume'undadir.
 
-Saglik kontrolu PostgreSQL'e gercek ping atar:
-
-```bash
-docker compose exec archive wget -qO- http://127.0.0.1:8080/healthz
-```
-
 Manuel ingest ornegi:
 
 `8080` host'a publish edilmez; manuel ingest testi Compose agindaki bir container'dan `http://archive:8080/ingest` adresine yapilmalidir.

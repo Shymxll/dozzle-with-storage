@@ -30,8 +30,6 @@ batch.max_events = 1000
 batch.timeout_secs = 2
 request.headers.Authorization = "Bearer ${INGEST_TOKEN}"
 request.headers."Content-Type" = "application/x-ndjson"
-healthcheck.enabled = true
-healthcheck.uri = "http://archive:8080/healthz"
 
 [sinks.archive.buffer]
 type = "disk"
