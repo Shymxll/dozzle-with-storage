@@ -1,6 +1,9 @@
 .git
 .tools
 certs
+!certs
+!certs/dozzle_cert.pem
+!certs/dozzle_key.pem
 graphify-out
 *.md
 Dockerfile*

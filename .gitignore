@@ -4,4 +4,6 @@ coverage.out
 *.exe
 certs/*.pem
 certs/*.csr
+!certs/dozzle_cert.pem
+!certs/dozzle_key.pem
 vector-data/
