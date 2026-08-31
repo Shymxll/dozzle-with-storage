@@ -2,6 +2,7 @@ services:
   cert-init:
     image: alpine:3.23
     restart: "no"
+    exclude_from_hc: true
     command:
       - /bin/sh
       - -ec

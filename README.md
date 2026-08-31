@@ -51,7 +51,7 @@ Uygulamanin kendi `DATABASE_URL` degeri Compose tarafindan `postgres` servisi ve
 
 ## Sertifika ve Dozzle baglantisi
 
-Compose icindeki tek seferlik `cert-init` servisi Ed25519 sertifika/key ciftini otomatik olusturur ve `dozzle-certs` named volume'unda saklar. `archive` servisi ancak bu islem basariyla tamamlandiktan sonra baslar. Sunucuda elle sertifika dosyasi veya bind mount yolu hazirlamak gerekmez.
+Compose icindeki tek seferlik `cert-init` servisi Ed25519 sertifika/key ciftini otomatik olusturur ve `dozzle-certs` named volume'unda saklar. `archive` servisi ancak bu islem basariyla tamamlandiktan sonra baslar. Coolify'in basariyla tamamlanan bu tek seferlik container'i stack arizasi saymamasi icin servis `exclude_from_hc: true` olarak isaretlidir. Sunucuda elle sertifika dosyasi veya bind mount yolu hazirlamak gerekmez.
 
 Ayni sertifika/key cifti hem arsiv agent'ina hem Dozzle container'ina salt okunur mount edilir. Compose icindeki sabitlenmis `amir20/dozzle:v10.6.14` servisi su agent ayarlariyla hazir gelir:
 
