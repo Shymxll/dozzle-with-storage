@@ -10,5 +10,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/log-arc
 FROM alpine:3.23
 RUN apk add --no-cache ca-certificates
 COPY --from=build /out/log-archive /log-archive
+COPY --chmod=0644 certs/dozzle_cert.pem /certs/dozzle_cert.pem
+COPY --chmod=0600 certs/dozzle_key.pem /certs/dozzle_key.pem
 EXPOSE 7007 8080
 ENTRYPOINT ["/log-archive"]

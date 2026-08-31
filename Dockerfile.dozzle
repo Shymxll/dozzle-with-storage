@@ -1,0 +1,4 @@
+FROM amir20/dozzle:v10.6.14
+
+COPY --chmod=0644 certs/dozzle_cert.pem /certs/dozzle_cert.pem
+COPY --chmod=0600 certs/dozzle_key.pem /certs/dozzle_key.pem

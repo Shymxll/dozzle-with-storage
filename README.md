@@ -51,9 +51,9 @@ Uygulamanin kendi `DATABASE_URL` degeri Compose tarafindan `postgres` servisi ve
 
 ## Sertifika ve Dozzle baglantisi
 
-Compose icindeki tek seferlik `cert-init` servisi Ed25519 sertifika/key ciftini otomatik olusturur ve `dozzle-certs` named volume'unda saklar. `archive` servisi ancak bu islem basariyla tamamlandiktan sonra baslar. Coolify'in basariyla tamamlanan bu tek seferlik container'i stack arizasi saymamasi icin servis `exclude_from_hc: true` olarak isaretlidir. Sunucuda elle sertifika dosyasi veya bind mount yolu hazirlamak gerekmez.
+Ed25519 sertifika/key cifti hem archive image'ina hem de `amir20/dozzle:v10.6.14` tabanli yerel Dozzle image'ina build sirasinda eklenir. Runtime sertifika ureticisi, sertifika volume'u veya host bind mount'u yoktur. gRPC portu host'a publish edilmedigi icin bu ortak anahtar yalnizca Compose'un ozel aginda kullanilir; `7007` disariya acilacaksa sertifika image disindan secret olarak saglanmalidir.
 
-Ayni sertifika/key cifti hem arsiv agent'ina hem Dozzle container'ina salt okunur mount edilir. Compose icindeki sabitlenmis `amir20/dozzle:v10.6.14` servisi su agent ayarlariyla hazir gelir:
+Ayni sertifika/key cifti her iki image'da `/certs` altindadir. Compose icindeki sabitlenmis `amir20/dozzle:v10.6.14` tabanli servis su agent ayarlariyla hazir gelir:
 
 ```yaml
 DOZZLE_REMOTE_AGENT: "archive:7007|Arşiv|Arşiv"
@@ -92,7 +92,7 @@ POSTGRES_PASSWORD=<openssl rand -hex 32 ciktisi>
 INGEST_TOKEN=<farkli bir openssl rand -hex 32 ciktisi>
 ```
 
-`postgres-data`, `vector-data` ve `dozzle-certs` volume'larini Coolify yedekleme politikaniza ekleyin. Asil log arsivi `postgres-data` volume'undadir.
+`postgres-data` ve `vector-data` volume'larini Coolify yedekleme politikaniza ekleyin. Asil log arsivi `postgres-data` volume'undadir.
 
 Manuel ingest ornegi:
 
