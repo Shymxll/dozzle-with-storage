@@ -61,6 +61,11 @@ DOZZLE_CERT: /certs/dozzle_cert.pem
 DOZZLE_KEY: /certs/dozzle_key.pem
 ```
 
+Vector yapilandirmasi `Dockerfile.vector` ile image icindeki
+`/etc/vector/vector.toml` yoluna kopyalanir. Bu nedenle Coolify sunucusunda
+repository klasorunun korunmasi veya `vector.toml` icin host bind mount
+olusturulmasi gerekmez.
+
 Agent istemci sertifikasini zorunlu tutar ve ayni sertifikayi guven koku olarak kullanir. `7007/tcp` host'a publish edilmez; yalnizca ayni Compose agindaki Dozzle tarafindan erisilir. Archive'in `8080` portu da yalnizca Vector icindir. Disariya acilacak tek web servisi Dozzle'in `8080` portudur.
 
 ## Calistirma

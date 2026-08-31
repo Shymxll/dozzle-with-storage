@@ -6,6 +6,4 @@ certs
 !certs/dozzle_key.pem
 graphify-out
 *.md
-Dockerfile*
 docker-compose*.yml
-vector.toml

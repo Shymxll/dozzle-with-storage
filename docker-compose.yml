@@ -56,7 +56,9 @@ services:
       - "8080"
 
   vector:
-    image: timberio/vector:0.57.0-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.vector
     container_name: log-archive-vector
     restart: unless-stopped
     depends_on:
@@ -68,7 +70,6 @@ services:
       VECTOR_DANGEROUSLY_ALLOW_ENV_VAR_INTERPOLATION: "true"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./vector.toml:/etc/vector/vector.toml:ro
       - vector-data:/var/lib/vector
 
 volumes:
